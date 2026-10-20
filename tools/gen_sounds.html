@@ -1,0 +1,52 @@
+<!doctype html>
+<!-- Runs tools/gen_sounds.mjs in the browser for machines without Node.
+     Serve the project with tools/serve.ps1, open /tools/gen_sounds.html.
+     "Play" previews a chime set; "Save all" writes assets/Audio/pulse/*.wav through serve.ps1. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pulse Router sound generator</title>
+<style>
+  body { font: 14px/1.5 ui-monospace, Consolas, monospace; background: #0b1020; color: #dfe8ff; margin: 16px; }
+  button { font: inherit; padding: 6px 12px; margin: 0 8px 8px 0; }
+  #status { color: #65e7ff; }
+</style>
+</head>
+<body>
+<p id="sets"></p>
+<p><button id="save">Save missing sounds to assets/Audio/pulse/</button><span id="status"></span></p>
+<script type="module">
+import { buildSounds, encodeWav, CHIME_SETS, chimeName, tickName, RATE } from './gen_sounds.mjs';
+const sounds = buildSounds();
+const status = document.getElementById('status');
+let ctx = null;
+function play(name, when = 0) {
+  ctx ??= new AudioContext();
+  const s = sounds[name], buf = ctx.createBuffer(1, s.length, RATE);
+  buf.copyToChannel(s, 0);
+  const src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination); src.start(ctx.currentTime + when);
+}
+for (const set of CHIME_SETS) {
+  const b = document.createElement('button'); b.textContent = `Play ${set}`;
+  b.addEventListener('click', () => { for (let i = 0; i < 8; i++) play(chimeName(set, i), i * 0.16); });
+  // A pulse run: twelve accelerating ticks, then a chime.
+  const run = document.createElement('button'); run.textContent = `Run ${set}`;
+  run.addEventListener('click', () => { let at = 0; for (let i = 0; i < 12; i++) { play(tickName(set, i), at); at += 0.11 - i * 0.006; } play(chimeName(set, 4), at + 0.05); });
+  document.getElementById('sets').append(b, run);
+}
+// Existing files are left alone: their audio is identical, and some carry provenance metadata
+// that this encoder does not write. Delete a file first to regenerate it.
+async function saveAll() {
+  let saved = 0;
+  for (const [name, samples] of Object.entries(sounds)) {
+    if ((await fetch(`/assets/Audio/pulse/${name}.wav`, { method: 'HEAD' })).ok) { status.textContent = ` Skipped existing ${name}`; continue; }
+    const r = await fetch(`/__save/assets/Audio/pulse/${name}.wav`, { method: 'PUT', body: encodeWav(samples) });
+    if (!r.ok) { status.textContent = ` Failed on ${name} (${r.status})`; return; }
+    status.textContent = ` Saved ${++saved}/${Object.keys(sounds).length}`;
+  }
+}
+document.getElementById('save').addEventListener('click', saveAll);
+window.__saveAll = saveAll; window.__play = play; window.__sounds = sounds;
+</script>
+</body>
+</html>

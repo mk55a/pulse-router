@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090e21">
+  <meta name="description" content="Draw one glowing path, light every node, reach the exit.">
+  <title>Pulse Router</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <p class="boot" id="boot" role="status">Loading Pulse Router…</p>
+
+    <section class="screen splash" id="splash" aria-label="Pulse Router">
+      <img class="splash-logo" src="assets/images/pulse-router-logo.svg" alt="Pulse Router">
+    </section>
+
+    <section class="screen home" id="home" aria-label="Home"></section>
+
+    <section class="screen game" id="game" aria-label="Level">
+      <div class="playfield" id="playfield"></div>
+      <div class="game-top">
+        <span class="level-pill" id="levelPill">Level 1-1</span>
+        <button class="icon-btn" id="gameSettings" type="button" aria-label="Settings"></button>
+      </div>
+    </section>
+
+    <div class="dialog-backdrop" id="settings" hidden>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <button class="icon-btn close" id="settingsClose" type="button" aria-label="Close settings"></button>
+        <h2 id="settingsTitle">Settings</h2>
+        <label class="row"><span>Sound</span><input class="switch" type="checkbox" id="optSound" checked></label>
+        <label class="row"><span>Vibration</span><input class="switch" type="checkbox" id="optHaptics" checked></label>
+        <label class="row"><span>Reduce motion</span><input class="switch" type="checkbox" id="optMotion"></label>
+        <label class="row"><span>Glow (bloom)</span><input class="switch" type="checkbox" id="optBloom" checked></label>
+        <label class="row"><span>Pulse speed</span>
+          <select id="optSpeed">
+            <option value="chain">Chain reaction</option>
+            <option value="surge">Surge</option>
+            <option value="quick">Quick</option>
+            <option value="steady">Steady</option>
+          </select>
+        </label>
+        <button class="wide-btn danger" id="optQuit" type="button">Quit to Home</button>
+        <button class="wide-btn danger" id="optReset" type="button">Reset progress</button>
+        <div class="confirm" id="quitConfirm" hidden>
+          <p>Leave this level? The board resets next time.</p>
+          <div class="confirm-row">
+            <button class="wide-btn" id="quitNo" type="button">Keep playing</button>
+            <button class="wide-btn danger" id="quitYes" type="button">Quit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fatal" id="fatal" hidden role="alert">
+      <p>Something went wrong and the game stopped.</p>
+      <button class="wide-btn" type="button" onclick="location.reload()">Reload</button>
+    </div>
+  </div>
+  <noscript>Pulse Router needs JavaScript.</noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

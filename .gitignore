@@ -1,0 +1,11 @@
+# Release builds are made by tools/package_release.ps1 into a folder outside the project;
+# keep any that land here out of the repository too.
+release/
+*.zip
+
+# Editors and OS clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,37 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 640 320"
+  role="img"
+  aria-labelledby="pulse-router-logo-title"
+>
+  <title id="pulse-router-logo-title">Pulse Router</title>
+  <defs>
+    <linearGradient id="pr-logo-path" x1="190" y1="0" x2="450" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#65e7ff"/>
+      <stop offset="1" stop-color="#b99bff"/>
+    </linearGradient>
+    <linearGradient id="pr-logo-word" x1="0" y1="226" x2="0" y2="272" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f1fbff"/>
+      <stop offset="1" stop-color="#9fe9ff"/>
+    </linearGradient>
+    <filter id="pr-logo-glow" x="-20%" y="-40%" width="140%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- The mark: Source ring, a routed path through a Node, into the Exit. The splash pulses it. -->
+  <g id="character-mark" filter="url(#pr-logo-glow)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M216 150 H278 V98 H352 V150 H424" stroke="url(#pr-logo-path)" stroke-width="9"/>
+    <circle cx="196" cy="150" r="20" stroke="#65e7ff" stroke-width="8"/>
+    <circle cx="196" cy="150" r="7" fill="#65e7ff" stroke="none"/>
+    <path d="M315 76 L331 98 L315 120 L299 98 Z" fill="#b99bff" stroke="#e4d9ff" stroke-width="3"/>
+    <rect x="426" y="130" width="40" height="40" rx="7" stroke="#ff8ac9" stroke-width="8"/>
+    <circle cx="352" cy="124" r="7" fill="#dffaff" stroke="none"/>
+  </g>
+
+  <g text-anchor="middle" font-family="Fredoka, 'Segoe UI', 'Avenir Next', sans-serif">
+    <text x="320" y="262" fill="url(#pr-logo-word)" font-size="50" font-weight="700" letter-spacing="6">PULSE ROUTER</text>
+    <text x="320" y="292" fill="#8fa3cc" font-size="14" font-weight="500" letter-spacing="7">ROUTE THE LIGHT</text>
+  </g>
+</svg>

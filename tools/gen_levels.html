@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- Runs tools/gen_levels.mjs in the browser for machines without Node.
+     Serve the project with tools/serve.ps1, open /tools/gen_levels.html, press Generate.
+     "Save" writes data/levels.json through serve.ps1's local-only save endpoint. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pulse Router level generator</title>
+<style>
+  body { font: 14px/1.4 ui-monospace, Consolas, monospace; background: #0b1020; color: #dfe8ff; margin: 16px; }
+  button { font: inherit; padding: 6px 14px; margin-right: 8px; }
+  pre { white-space: pre-wrap; }
+  #status { color: #65e7ff; }
+</style>
+</head>
+<body>
+<p><button id="gen">Generate</button><button id="save" disabled>Save to data/levels.json</button><span id="status"></span></p>
+<pre id="log"></pre>
+<script type="module">
+import { WORLDS, SEED, generateWorld, describe } from './gen_levels.mjs';
+const log = document.getElementById('log'), status = document.getElementById('status');
+const genBtn = document.getElementById('gen'), saveBtn = document.getElementById('save');
+let output = null;
+const tick = () => new Promise(r => setTimeout(r, 0));
+
+async function generate() {
+  genBtn.disabled = true; saveBtn.disabled = true; log.textContent = ''; output = null;
+  const levels = [];
+  const started = performance.now();
+  try {
+    for (const world of WORLDS) {
+      status.textContent = ` World ${world.world}…`;
+      await tick();
+      levels.push(...generateWorld(world, SEED, { onSlot: l => { log.textContent += describe(l) + '\n'; } }));
+    }
+    output = { version: 1, end: 'stop', order: levels.map(l => l.id), levels };
+    status.textContent = ` Done: ${levels.length} levels in ${((performance.now() - started) / 1000).toFixed(1)} s`;
+    saveBtn.disabled = false;
+  } catch (error) {
+    status.textContent = ' Failed: ' + error.message;
+  }
+  genBtn.disabled = false;
+  window.__levels = output;
+}
+
+async function save() {
+  const response = await fetch('/__save/data/levels.json', { method: 'PUT', body: JSON.stringify(output, null, 2) + '\n' });
+  status.textContent = response.ok ? ' Saved data/levels.json' : ` Save failed (${response.status})`;
+}
+
+genBtn.addEventListener('click', generate);
+saveBtn.addEventListener('click', save);
+window.__generate = generate; window.__save = save;
+</script>
+</body>
+</html>
