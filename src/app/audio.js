@@ -1,7 +1,8 @@
 // Sound effects through one Web Audio graph. Browsers only allow audio after a user gesture,
 // so the context is created on the first tap or key press; sounds are fetched and decoded on
 // first use (and warmed in the background after unlocking). Silent when sound is turned off.
-export function createAudio({ baseUrl, names, isEnabled = () => true }) {
+// `synth(name)` may supply raw samples instead of files (the playable ad synthesises its sounds).
+export function createAudio({ baseUrl, names, isEnabled = () => true, synth = null, sampleRate = 22050 }) {
   let ctx = null, master = null;
   const buffers = new Map(), pending = new Map(), holds = new Set();
 
@@ -16,6 +17,14 @@ export function createAudio({ baseUrl, names, isEnabled = () => true }) {
   function load(name) {
     if (buffers.has(name)) return Promise.resolve(buffers.get(name));
     if (pending.has(name)) return pending.get(name);
+    if (synth) {
+      const samples = synth(name);
+      if (!samples) return Promise.resolve(null);
+      const buffer = ctx.createBuffer(1, samples.length, sampleRate);
+      buffer.copyToChannel(samples, 0);
+      buffers.set(name, buffer);
+      return Promise.resolve(buffer);
+    }
     const job = fetch(new URL(`${name}.wav`, baseUrl))
       .then(r => { if (!r.ok) throw new Error(`Sound ${name}: ${r.status}`); return r.arrayBuffer(); })
       .then(data => ctx.decodeAudioData(data))

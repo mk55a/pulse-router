@@ -84,6 +84,9 @@ export function createGameplay(context) {
     refresh();
     api.relight(board.source);
     if (phase === 'card') showNextCard();
+    // Optional observer for wrappers such as the playable ad (tutorial finger, pacing, and
+    // scripted demos that draw and fire a route themselves through `control`).
+    context.events?.levelShown?.({ board, solution, screenOf: api.screenOf, control });
   }
 
   // ---------- New-rule cards (once per rule, before the first level that uses it) ----------
@@ -126,6 +129,7 @@ export function createGameplay(context) {
     api.clearMissed();
     if (prompt && path.length > 1) { prompt = ''; hud?.setPrompt(''); }
     refresh();
+    context.events?.pathChanged?.(path.length);
   }
   function refuse(r, c, reason, expected) {
     const k = r * board.cols + c;
@@ -199,6 +203,7 @@ export function createGameplay(context) {
   // ---------- Controls ----------
   function undo() { if (phase === 'draw' && path.undo()) { lastRefused = -1; afterEdit(); } }
   function clear() { if (phase === 'draw' && path.length > 1) { path.clear(); afterEdit(); api.relight(board.source); } }
+  const control = { step: (r, c) => phase === 'draw' && tryStep(r, c), clear, pulse: () => firePulse() };
 
   function firePulse() {
     if (phase !== 'draw' || !shown) return;
@@ -218,6 +223,7 @@ export function createGameplay(context) {
   function resolvePulse() {
     const o = run.outcome;
     const stop = run.path[o.stopIndex];
+    context.events?.pulseResolved?.(o.result);
     if (o.result === 'win') {
       // Hold a beat after the last node chime so the win chord reads as its own moment.
       phase = 'won'; timer = WIN_HOLD; winDelay = WIN_CHORD_DELAY;
@@ -322,8 +328,10 @@ export function createGameplay(context) {
       const seen = new Set(seenRules());
       pendingRules = rulesFor(board, definition).filter(rule => !seen.has(rule));
       phase = pendingRules.length ? 'card' : 'draw';
-      // The equipped circuit skin (Circuits screen), if the stars still unlock it.
-      skin = resolveSkin(settings().skin, totalStars(progress?.read().levels), circuitsUnlockedForTesting(context.config));
+      // The equipped circuit skin (Circuits screen), if the stars still unlock it. A wrapper such as
+      // the playable ad can fix the skin instead (context.skin), since it has no stars to unlock with.
+      skin = context.skin ? (SKINS.find(s => s.id === context.skin) ?? SKINS[0])
+        : resolveSkin(settings().skin, totalStars(progress?.read().levels), circuitsUnlockedForTesting(context.config));
       api.setSkin(skin);
       shown = false;
       if (api.ready) { showLevel(); return; }

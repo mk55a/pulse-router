@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playable Tester</title>
+<style>
+  /* Local checks for a playable ad build before it goes to the networks' own preview tools.
+     Open this page from tools/serve.ps1 (or by double-click), pick a built .html file, and it runs
+     in a portrait and a landscape phone frame with stand-ins for every network's API. */
+  :root { --bg: #0d1226; --panel: #151c38; --line: #2a3460; --text: #e8f6ff; --muted: #8fa3cc; --ok: #5be3a0; --warn: #ffb347; --bad: #ff7a7a; --accent: #65e7ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .5px; }
+  label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+  select, button, input[type=file] { font: inherit; color: var(--text); background: #1d2650; border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; }
+  button { cursor: pointer; }
+  button.on { background: var(--accent); color: #07122a; border-color: var(--accent); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; padding: 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .frames { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  figure { margin: 0; }
+  figcaption { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .phone { position: relative; border: 10px solid #000; border-radius: 26px; background: #000; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+  .phone iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; background: #000; }
+  .close-x { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; display: grid; place-items: center; font-size: 15px; pointer-events: none; z-index: 2; }
+  aside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .card h2 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 600; letter-spacing: .4px; text-transform: uppercase; }
+  .checks div { display: flex; gap: 8px; padding: 2px 0; }
+  .checks .ok::before { content: "✓"; color: var(--ok); }
+  .checks .warn::before { content: "!"; color: var(--warn); font-weight: 700; padding: 0 3px; }
+  .checks .bad::before { content: "✗"; color: var(--bad); }
+  .checks .wait::before { content: "…"; color: var(--muted); }
+  #log { font: 12px/1.5 ui-monospace, Consolas, monospace; max-height: 340px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 0; }
+  #log .cta { color: var(--ok); } #log .net { color: var(--bad); } #log .mraid { color: var(--accent); }
+  .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+  .empty { color: var(--muted); padding: 40px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Playable Tester</h1>
+  <input type="file" id="file" accept=".html,text/html">
+  <label>Phone <select id="device">
+    <option value="393x852">iPhone 15 (393×852)</option>
+    <option value="360x640">Small Android (360×640)</option>
+    <option value="412x915">Large Android (412×915)</option>
+    <option value="768x1024">iPad (768×1024)</option>
+  </select></label>
+  <button id="viewable" type="button" class="on" title="MRAID viewableChange">Ad visible</button>
+  <button id="reload" type="button">Reload</button>
+</header>
+<main>
+  <section class="frames" id="frames"><p class="empty">Pick a built playable (.html) to start.</p></section>
+  <aside>
+    <div class="card"><h2>Checks</h2><div class="checks" id="checks"></div>
+      <p class="hint">Local checks only. Each network's own preview tool is the final word.</p></div>
+    <div class="card"><h2>Events</h2><pre id="log"></pre></div>
+  </aside>
+</main>
+<script>
+// Size limits as published by each network (checked November 2026); Meta's single-file limit is 2 MB.
+const LIMITS = { applovin: 5, unity: 5, ironsource: 5, vungle: 5, mintegral: 5, tiktok: 5, google: 5, meta: 2, preview: 5 };
+const MRAID_NETS = ['applovin', 'unity', 'ironsource', 'vungle'];
+const CTA_CALLS = { applovin: 'mraid.open', unity: 'mraid.open', ironsource: 'mraid.open', vungle: 'mraid.open', mintegral: 'install', tiktok: 'openAppStore', google: 'ExitApi.exit', meta: 'FbPlayableAd.onCTAClick', preview: 'window.open' };
+const $ = id => document.getElementById(id);
+let source = '', fileName = '', network = 'preview', bytes = 0, started = 0, viewable = true;
+let state = {};
+
+// Runs inside each frame before the playable: stand-ins for every network's API, reporting to this page.
+function harness(frameId, visible) {
+  return `<script>(function(){
+  var id=${JSON.stringify(frameId)};
+  function say(kind, text){ parent.postMessage({ __tester: 1, id: id, kind: kind, text: text }, '*'); }
+  var listeners={}, st='loading', vis=${visible ? 'true' : 'false'};
+  function emit(ev){ var a=[].slice.call(arguments,1); (listeners[ev]||[]).slice().forEach(function(f){ try{ f.apply(null,a); }catch(e){ say('error', String(e)); } }); }
+  window.mraid={
+    getVersion:function(){ return '3.0'; }, getState:function(){ return st; }, isViewable:function(){ return vis; },
+    getPlacementType:function(){ return 'interstitial'; },
+    addEventListener:function(ev,f){ (listeners[ev]=listeners[ev]||[]).push(f); say('mraid','addEventListener("'+ev+'")'); },
+    removeEventListener:function(ev,f){ listeners[ev]=(listeners[ev]||[]).filter(function(x){ return x!==f; }); },
+    open:function(u){ say('cta','mraid.open("'+u+'")'); }, openStoreURL:function(u){ say('cta','mraid.openStoreURL('+(u||'')+')'); },
+    close:function(){ say('mraid','mraid.close()'); }, useCustomClose:function(){},
+    getMaxSize:function(){ return { width: innerWidth, height: innerHeight }; }, getScreenSize:function(){ return { width: innerWidth, height: innerHeight }; },
+    getCurrentPosition:function(){ return { x: 0, y: 0, width: innerWidth, height: innerHeight }; }
+  };
+  window.FbPlayableAd={ onCTAClick:function(){ say('cta','FbPlayableAd.onCTAClick()'); } };
+  window.ExitApi={ exit:function(){ say('cta','ExitApi.exit()'); } };
+  window.install=function(){ say('cta','install()'); };
+  window.gameReady=function(){ say('mraid','gameReady()'); setTimeout(function(){ if (window.gameStart) { say('mraid','host → gameStart()'); window.gameStart(); } }, 300); };
+  window.gameEnd=function(){ say('end','gameEnd()'); };
+  window.openAppStore=function(){ say('cta','openAppStore()'); };
+  window.open=function(u){ say('cta','window.open("'+u+'")'); return null; };
+  window.addEventListener('message', function(e){ var d=e.data; if (d && d.__tester_cmd==='viewable') { vis=d.value; emit('viewableChange', vis); } });
+  setTimeout(function(){ st='default'; say('mraid','state → default, ready'); emit('ready'); }, 400);
+  // Anything fetched from outside the page is a failure for an ad, except the network's own
+  // scripts (mraid.js, Google's exitapi.js).
+  try { new PerformanceObserver(function(list){ list.getEntries().forEach(function(en){ if (!/(mraid|exitapi)\\.js$/.test(en.name)) say('net', en.initiatorType+' '+en.name); }); }).observe({ type: 'resource', buffered: true }); } catch(e){}
+  window.addEventListener('error', function(e){ say('error', e.message+' @'+(e.lineno||'')); });
+  var ce=console.error; console.error=function(){ say('error', [].map.call(arguments,String).join(' ')); ce.apply(console,arguments); };
+})();<\/script>`;
+}
+
+function prepare(html, frameId) {
+  // The network's mraid.js tag would 404 here; the harness above stands in for it.
+  const page = html.replace(/<script src="mraid\.js"><\/script>/g, '');
+  return page.replace(/<head>/i, '<head>' + harness(frameId, viewable));
+}
+
+function detectNetwork(html, name) {
+  const m = html.match(/PR_NETWORK=("[a-z]+")/);
+  if (m) return JSON.parse(m[1]);
+  const n = name.match(/playable-([a-z]+)/);
+  return n ? n[1] : 'preview';
+}
+
+function render() {
+  const frames = $('frames');
+  if (!source) return;
+  frames.replaceChildren();
+  const [w, h] = $('device').value.split('x').map(Number);
+  const room = Math.max(320, frames.clientWidth - 40);
+  for (const [label, fw, fh] of [['Portrait', w, h], ['Landscape', h, w]]) {
+    // Scale each phone down so both fit side by side; the page inside still sees the real size.
+    const scale = Math.min(1, 560 / fh, (room / 2 + 120) / fw, room / fw);
+    const fig = document.createElement('figure');
+    const cap = document.createElement('figcaption'); cap.textContent = `${label} · ${fw}×${fh} · ${Math.round(scale * 100)}%`;
+    const phone = document.createElement('div'); phone.className = 'phone';
+    phone.style.width = fw * scale + 20 + 'px'; phone.style.height = fh * scale + 20 + 'px';
+    const frame = document.createElement('iframe');
+    frame.width = fw; frame.height = fh; frame.style.transform = `scale(${scale})`;
+    frame.dataset.id = label.toLowerCase(); frame.title = `${label} playable`;
+    frame.srcdoc = prepare(source, frame.dataset.id);
+    const x = document.createElement('div'); x.className = 'close-x'; x.textContent = '✕'; x.title = 'Where the network draws its close button';
+    phone.append(frame, x); fig.append(cap, phone); frames.append(fig);
+  }
+  started = performance.now();
+  state = { cta: {}, net: [], errors: [], end: null };
+  $('log').replaceChildren();
+  log('info', `Loaded ${fileName} · network ${network} · ${(bytes / 1024).toFixed(0)} KB`);
+  updateChecks();
+}
+
+function log(kind, text, id) {
+  const t = ((performance.now() - started) / 1000).toFixed(1).padStart(5);
+  const line = document.createElement('div'); line.className = kind;
+  line.textContent = `${t}s ${id ? '[' + id + '] ' : ''}${text}`;
+  $('log').append(line); $('log').scrollTop = 1e9;
+}
+
+function updateChecks() {
+  const limit = LIMITS[network] ?? 5, mb = bytes / 1048576;
+  const rows = [];
+  rows.push([mb <= limit ? 'ok' : 'bad', `Size ${mb.toFixed(2)} MB (limit ${limit} MB for ${network})`]);
+  const external = (source.match(/<(script|link|img)[^>]+(src|href)="(https?:)?\/\/[^"]+"/g) || []).filter(s => !/exitapi\.js/.test(s));
+  rows.push([external.length ? 'bad' : 'ok', external.length ? `External file in the page: ${external[0]}` : 'No external files referenced (single file)']);
+  if (MRAID_NETS.includes(network)) {
+    const tag = /<script src="mraid\.js"><\/script>/.test(source);
+    rows.push([network === 'unity' ? (tag ? 'warn' : 'ok') : (tag ? 'ok' : 'warn'), network === 'unity' ? (tag ? 'Unity injects MRAID itself; remove the mraid.js tag' : 'No mraid.js tag (Unity injects it)') : (tag ? 'mraid.js tag present' : 'No mraid.js tag')]);
+  }
+  rows.push([state.net.length ? 'bad' : 'ok', state.net.length ? `${state.net.length} network request(s) while running` : 'No network requests while running']);
+  rows.push([state.errors.length ? 'bad' : 'ok', state.errors.length ? `${state.errors.length} script error(s)` : 'No script errors']);
+  const expected = CTA_CALLS[network];
+  for (const id of ['portrait', 'landscape']) {
+    const hit = state.cta[id];
+    rows.push([hit ? (hit.includes(expected) ? 'ok' : 'bad') : 'wait', hit ? `${id}: CTA called ${hit}` : `${id}: tap Play now to check the CTA (expects ${expected})`]);
+  }
+  if (network === 'mintegral' || network === 'vungle') rows.push([state.end ? 'ok' : 'wait', state.end ? `Game end reported (${state.end})` : 'Game end not reported yet (reach the end card)']);
+  $('checks').replaceChildren(...rows.map(([cls, text]) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; return d; }));
+}
+
+addEventListener('message', e => {
+  const d = e.data;
+  if (typeof d === 'string' && (d === 'download' || d === 'complete')) {
+    const id = [...document.querySelectorAll('iframe')].find(f => f.contentWindow === e.source)?.dataset.id;
+    if (d === 'download') { state.cta[id] = `postMessage('download')`; log('cta', `postMessage("download")`, id); }
+    else { state.end = `postMessage('complete')`; log('end', `postMessage("complete")`, id); }
+    return updateChecks();
+  }
+  if (!d || !d.__tester) return;
+  if (d.kind === 'cta') state.cta[d.id] = d.text;
+  if (d.kind === 'net') state.net.push(d.text);
+  if (d.kind === 'error') state.errors.push(d.text);
+  if (d.kind === 'end') state.end = d.text;
+  log(d.kind, d.text, d.id);
+  updateChecks();
+});
+
+async function load(text, name, size) {
+  source = text; fileName = name; bytes = size; network = detectNetwork(text, name);
+  render();
+}
+$('file').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  load(await f.text(), f.name, f.size);
+});
+$('device').addEventListener('change', render);
+$('reload').addEventListener('click', render);
+$('viewable').addEventListener('click', () => {
+  viewable = !viewable;
+  $('viewable').classList.toggle('on', viewable);
+  $('viewable').textContent = viewable ? 'Ad visible' : 'Ad hidden';
+  document.querySelectorAll('iframe').forEach(f => f.contentWindow?.postMessage({ __tester_cmd: 'viewable', value: viewable }, '*'));
+  log('mraid', `viewableChange(${viewable})`);
+});
+// ?src=file.html loads a build served next to this page (used for scripted checks).
+const src = new URLSearchParams(location.search).get('src');
+if (src) fetch(src).then(async r => { const t = await r.text(); load(t, src.split('/').pop(), new Blob([t]).size); });
+</script>
+</body>
+</html>

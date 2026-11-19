@@ -66,7 +66,7 @@ export function createBoardView({ reducedMotion = false } = {}) {
   const api = {
     ready: false, canvas: null, bloomAvailable: false,
     setLevel() {}, setPath() {}, pick() { return null; }, bump() {}, setHint() {},
-    lightTile() {}, pulseTile() {}, nodeBurst() {}, setPulse() {}, setPulseBoost() {}, clearMissed() {},
+    lightTile() {}, pulseTile() {}, screenOf() { return null; }, nodeBurst() {}, setPulse() {}, setPulseBoost() {}, clearMissed() {},
     // Takes effect on the next setLevel.
     setSkin(next) { if (next) skin = next; }, failDrained() {}, failLocked() {}, failStalled() {},
     relight() {}, winRipple() {}, setBloom() {}, setReducedMotion(v) { reducedMotion = v; }
@@ -329,6 +329,16 @@ export function createBoardView({ reducedMotion = false } = {}) {
 
     // ---------- Picking ----------
     const ray = new T.Raycaster(), ndc = new T.Vector2(), plane = new T.Plane(new T.Vector3(0, 1, 0), -(TILE_H)), hit = new T.Vector3();
+    // Where a tile's top centre is on screen, in CSS pixels relative to the canvas (for overlays
+    // such as the playable ad's tutorial finger).
+    const probe = new T.Vector3();
+    api.screenOf = (r, c) => {
+      if (!level) return null;
+      probe.copy(cellPos(r, c)).setY(TILE_H + LIFT);
+      probe.project(camera);
+      const rect = renderer.domElement.getBoundingClientRect();
+      return { x: (probe.x + 1) / 2 * rect.width, y: (1 - probe.y) / 2 * rect.height };
+    };
     api.pick = (x, y, width, height) => {
       if (!level) return null;
       ndc.set((x / width) * 2 - 1, -(y / height) * 2 + 1);
@@ -436,8 +446,13 @@ export function createBoardView({ reducedMotion = false } = {}) {
       camera.lookAt(0, 0, 0);
     }
     // Safe area in NDC leaves room for the HUD bars above and below the board.
-    const SAFE = { left: -0.9, right: 0.9, top: 0.62, bottom: -0.58 };
+    const SAFE_PORTRAIT = { left: -0.9, right: 0.9, top: 0.62, bottom: -0.58 };
+    // Short landscape screens (phones on their side): the HUD stats sit along the top and the
+    // buttons in a column on the right (see hud.js), so the board gets the left and lower area.
+    const SAFE_LANDSCAPE = { left: -0.9, right: 0.48, top: 0.5, bottom: -0.9 };
+    const isShortLandscape = () => viewport.width > viewport.height * 1.25 && viewport.height <= 560;
     function fitCamera() {
+      const SAFE = isShortLandscape() ? SAFE_LANDSCAPE : SAFE_PORTRAIT;
       if (!level) return;
       camera.aspect = viewport.width / Math.max(1, viewport.height);
       camera.clearViewOffset();
@@ -459,9 +474,12 @@ export function createBoardView({ reducedMotion = false } = {}) {
       }
       camDistance = hi;
       const q = bounds(camDistance);
-      const shiftY = (SAFE.top + SAFE.bottom) / 2 - (q.maxY + q.minY) / 2; // NDC units, + moves content up
+      // NDC units: + moves content right / up. A view offset moves the window, so the content
+      // moves the opposite way horizontally and the same way vertically (screen y points down).
+      const shiftX = (SAFE.left + SAFE.right) / 2 - (q.maxX + q.minX) / 2;
+      const shiftY = (SAFE.top + SAFE.bottom) / 2 - (q.maxY + q.minY) / 2;
       const w = Math.max(1, viewport.width), h = Math.max(1, viewport.height);
-      camera.setViewOffset(w, h, 0, -shiftY * h / 2, w, h);
+      camera.setViewOffset(w, h, -shiftX * w / 2, shiftY * h / 2, w, h);
       camera.updateProjectionMatrix();
     }
 

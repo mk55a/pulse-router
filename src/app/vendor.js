@@ -6,6 +6,8 @@ export const THREE_SCRIPTS = Object.freeze([
 ]);
 
 export async function loadThree(baseUrl) {
+  // Single-file builds (the playable ad) inline these scripts, so there is nothing to fetch.
+  if (globalThis.THREE?.WebGLRenderer && globalThis.THREE?.UnrealBloomPass) return;
   for (const name of THREE_SCRIPTS) {
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');

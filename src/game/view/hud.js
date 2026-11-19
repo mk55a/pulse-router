@@ -4,7 +4,7 @@
 const CSS = `
 .pr-hud{position:absolute;inset:0;pointer-events:none;z-index:2;font-family:Fredoka,system-ui,sans-serif;color:#e8f6ff;display:flex;flex-direction:column;justify-content:space-between}
 .pr-top{display:flex;flex-direction:column;align-items:center;gap:6px;padding:68px 12px 0}
-.pr-stats{display:flex;align-items:center;gap:12px;background:rgba(9,14,33,.72);border:1px solid rgba(101,231,255,.25);border-radius:999px;padding:6px 14px}
+.pr-stats{display:flex;align-items:center;gap:12px;max-width:100%;background:rgba(9,14,33,.72);border:1px solid rgba(101,231,255,.25);border-radius:999px;padding:6px 14px}
 .pr-cells{display:flex;flex-wrap:nowrap;gap:3px;max-width:min(58vw,300px);min-width:0;flex:0 1 auto}
 .pr-cell{width:9px;flex:0 1 auto;min-width:2px;height:16px;border-radius:3px;background:#65e7ff;box-shadow:0 0 6px rgba(101,231,255,.7)}
 .pr-cell.spent{background:#26304f;box-shadow:none}
@@ -47,6 +47,14 @@ const CSS = `
 .pr-hint{border-color:#b99bff;color:#e4d9ff;box-shadow:0 0 14px rgba(185,155,255,.45)}
 .pr-hint[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.pr-prompt,.pr-fail,.pr-win{transition:none}}
+/* Short landscape screens (phones on their side): stats in the top bar, buttons in a right-hand column. */
+@media (orientation:landscape) and (max-height:560px){
+  .pr-top{padding:12px 12px 0;gap:4px}
+  .pr-msg{min-height:0}
+  .pr-bottom{position:absolute;right:14px;top:50%;transform:translateY(-50%);flex-direction:column;align-items:stretch;padding:0}
+  .pr-btn{min-height:46px}
+  .pr-pulse{min-height:56px;min-width:112px}
+}
 `;
 
 const ICONS = {
