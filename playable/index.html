@@ -15,8 +15,9 @@
     .playfield { position: absolute; inset: 0; }
     .boot { position: absolute; inset: 0; display: grid; place-items: center; color: #8fa3cc; margin: 0; }
     .app.ready .boot { display: none; }
-    /* Kept clear of both top corners: ad networks draw their own close button there. */
-    .ad-top { position: absolute; z-index: 6; top: calc(14px + env(safe-area-inset-top, 0px)); left: 60px; right: 60px; display: flex; justify-content: center; gap: 14px; align-items: center; pointer-events: none; }
+    /* Kept clear of both top corners: ad networks draw their own close button there. Above the
+       demo's touch blocker (z 8) so Play now always works; below the end card (z 20). */
+    .ad-top { position: absolute; z-index: 9; top: calc(14px + env(safe-area-inset-top, 0px)); left: 60px; right: 60px; display: flex; justify-content: center; gap: 14px; align-items: center; pointer-events: none; }
     .ad-brand { font-weight: 800; font-size: 14px; letter-spacing: 3px; color: #f1f7ff; text-shadow: 0 0 10px rgba(101,231,255,.6); }
     .ad-cta { pointer-events: auto; border: none; border-radius: 999px; padding: 9px 16px; background: var(--ad-accent, #65e7ff); color: #07122a; font-weight: 800; font-size: 13px; letter-spacing: .5px; box-shadow: 0 0 14px var(--ad-accent, #65e7ff); }
     /* Phone on its side: the game puts its stats in the top bar, so they move down under this one. */

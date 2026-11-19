@@ -149,6 +149,7 @@ function startTimer() {
     if (!demoing && !ghost.visible && current && (now - lastTouch) / 1000 >= IDLE_HINT) { showGhost(); lastTouch = now; }
   }, 500);
 }
+$('cta').hidden = !variant.topCta;
 $('cta').addEventListener('click', () => { audio.play('pr_ui_click'); adapter.install(); });
 
 // Hidden ad (scrolled away, app backgrounded): pause play and sound.

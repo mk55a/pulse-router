@@ -2,6 +2,8 @@
 // can be A/B tested against each other. Pick one with globalThis.PR_VARIANT (set per build by
 // tools/build_playable.ps1) or ?variant= on the dev page.
 //
+// topCta: a "Play now" button in the top bar for the whole ad; without it, the install button is
+// only on the end card (one more thing the variants test against each other).
 // Level fields are the game's own (grid, energy, par, exact, solution, prompt), plus:
 //   ghost: the tutorial finger draws the solution as soon as the level appears;
 //   demo:  the ad draws and fires `route` itself first, shows `banner`, then hands over to the
@@ -10,7 +12,7 @@
 export const VARIANTS = Object.freeze({
   // A: teach, then a near miss. Classic skin.
   tutorial: Object.freeze({
-    skin: 'classic',
+    skin: 'classic', topCta: true,
     end: { title: 'Route the light', line: '36 levels · 3 worlds · 6 circuits to unlock' },
     levels: [
       // 3×3 teach: the finger draws the 4-move route (a 6-move route also wins).
