@@ -16,14 +16,15 @@
     .boot { position: absolute; inset: 0; display: grid; place-items: center; color: #8fa3cc; margin: 0; }
     .app.ready .boot { display: none; }
     /* Kept clear of both top corners: ad networks draw their own close button there. Above the
-       demo's touch blocker (z 8) so Play now always works; below the end card (z 20). */
-    .ad-top { position: absolute; z-index: 9; top: calc(14px + env(safe-area-inset-top, 0px)); left: 60px; right: 60px; display: flex; justify-content: center; gap: 14px; align-items: center; pointer-events: none; }
-    .ad-brand { font-weight: 800; font-size: 14px; letter-spacing: 3px; color: #f1f7ff; text-shadow: 0 0 10px rgba(101,231,255,.6); }
-    .ad-cta { pointer-events: auto; border: none; border-radius: 999px; padding: 9px 16px; background: var(--ad-accent, #65e7ff); color: #07122a; font-weight: 800; font-size: 13px; letter-spacing: .5px; box-shadow: 0 0 14px var(--ad-accent, #65e7ff); }
+       demo's touch blocker (z 8) so Play now always works; below the end card (z 20).
+       No "ad-" class names: browser ad blockers hide elements named like that. */
+    .pr-topbar { position: absolute; z-index: 9; top: calc(14px + env(safe-area-inset-top, 0px)); left: 60px; right: 60px; display: flex; justify-content: center; gap: 14px; align-items: center; pointer-events: none; }
+    .pr-topbar-name { font-weight: 800; font-size: 14px; letter-spacing: 3px; color: #f1f7ff; text-shadow: 0 0 10px rgba(101,231,255,.6); }
+    .pr-topbar-cta { pointer-events: auto; border: none; border-radius: 999px; padding: 9px 16px; background: var(--ad-accent, #65e7ff); color: #07122a; font-weight: 800; font-size: 13px; letter-spacing: .5px; box-shadow: 0 0 14px var(--ad-accent, #65e7ff); }
     /* Phone on its side: the game puts its stats in the top bar, so they move down under this one. */
     @media (orientation: landscape) and (max-height: 560px) {
-      .ad-top { top: calc(8px + env(safe-area-inset-top, 0px)); }
-      .ad-cta { padding: 7px 14px; }
+      .pr-topbar { top: calc(8px + env(safe-area-inset-top, 0px)); }
+      .pr-topbar-cta { padding: 7px 14px; }
       #playfield .pr-top { padding-top: 48px; }
     }
   </style>
@@ -32,7 +33,7 @@
   <div class="app" id="app">
     <p class="boot">Loading…</p>
     <div class="playfield" id="playfield"></div>
-    <div class="ad-top"><span class="ad-brand">PULSE ROUTER</span><button class="ad-cta" id="cta" type="button">Play now</button></div>
+    <div class="pr-topbar"><span class="pr-topbar-name">PULSE ROUTER</span><button class="pr-topbar-cta" id="cta" type="button">Play now</button></div>
   </div>
   <!--PR_SCRIPTS-->
   <script type="module" src="../src/playable/main.js"></script>

@@ -1,12 +1,13 @@
 # Pulse Router
 
-**[▶ Play the game](https://mk55a.itch.io/pulse-router)**
+**PLAY THE GAME:** [mk55a.itch.io/pulse-router](https://mk55a.itch.io/pulse-router)
 
-**Playable ad variants:**
+**PLAY THE PLAYABLE AD VARIANTS:**
+- [Tutorial](https://mk55a.github.io/pulse-router/playable/)
+- [Fix it](https://mk55a.github.io/pulse-router/playable/?variant=fixit)
+- [Chain reaction](https://mk55a.github.io/pulse-router/playable/?variant=chain)
 
-**[▶ Tutorial](https://mk55a.github.io/pulse-router/playable/)** ·
-**[▶ Fix it](https://mk55a.github.io/pulse-router/playable/?variant=fixit)** ·
-**[▶ Chain reaction](https://mk55a.github.io/pulse-router/playable/?variant=chain)**
+<br>
 
 <p>
   <img src="media/home.jpg" width="240" alt="Home screen">
